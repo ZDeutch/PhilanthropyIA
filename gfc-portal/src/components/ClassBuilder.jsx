@@ -391,10 +391,12 @@ function AuthorizationsStep({ classData, economicsData, onNext, onBack }) {
 
   const [driftAuthorized, setDriftAuthorized] = useState(false);
   const [fallback, setFallback] = useState('');
+  const [equitableAck, setEquitableAck] = useState(false);
+  const [liabilityAck, setLiabilityAck] = useState(false);
 
   const lowBand = parseFloat((perChild * 0.85).toFixed(2));
   const highBand = parseFloat((perChild * 1.15).toFixed(2));
-  const canContinue = driftAuthorized && fallback;
+  const canContinue = driftAuthorized && fallback && equitableAck && liabilityAck;
 
   const FALLBACK_OPTIONS = [
     { value: 'expand_to_county', label: 'Expand to the containing county/counties', note: null },
@@ -456,10 +458,58 @@ function AuthorizationsStep({ classData, economicsData, onNext, onBack }) {
         </div>
       </div>
 
+      {/* Equitable distribution acknowledgment */}
+      <div className="bg-white border border-gray-200 rounded p-5 mb-4">
+        <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-3">Equitable Distribution Requirement</p>
+        <div className="bg-amber-50 border border-amber-200 rounded p-3 mb-3 text-xs text-amber-800">
+          <p className="font-semibold mb-1">§530A Pro-Rata Distribution Mandate</p>
+          <p>
+            All contributions under §530A must be distributed on a strictly equal, per-beneficiary basis.
+            Every enrolled account holder in the qualified class must receive the identical per-child amount at disbursement.
+            Differential amounts, priority ordering, or conditions tied to individual beneficiary characteristics are prohibited.
+          </p>
+        </div>
+        <label className="flex items-start gap-3 cursor-pointer">
+          <input type="checkbox" checked={equitableAck} onChange={e => setEquitableAck(e.target.checked)} className="mt-0.5" />
+          <span className="text-sm text-gray-700">
+            I acknowledge that the per-child amount of{' '}
+            <span className="font-semibold text-gray-900">{fmtCurrency(perChild)}</span>{' '}
+            will be credited identically to every enrolled beneficiary in the qualified class at disbursement.
+            I may not direct, vary, condition, or restrict the amount credited to any individual beneficiary,
+            and I understand that any attempt to do so voids this contribution authorization.
+          </span>
+        </label>
+      </div>
+
+      {/* Legal liability disclosure */}
+      <div className="bg-white border border-red-200 rounded p-5 mb-5">
+        <p className="text-xs font-bold text-red-600 uppercase tracking-wide mb-3">Legal Liability Disclosure</p>
+        <div className="bg-red-50 border border-red-200 rounded p-3 mb-3 text-xs text-red-800 space-y-1.5">
+          <p className="font-semibold">Violations of the equitable distribution requirement may result in:</p>
+          <ul className="list-disc ml-4 space-y-1">
+            <li>Full recapture of the contributed amount plus applicable interest under IRC §530A(g)</li>
+            <li>Excise taxes under IRC §4966 (taxable distributions) and §4967 (prohibited benefits)</li>
+            <li>Personal liability for officers and directors who authorized the contribution</li>
+            <li>Referral to the Department of Justice for willful violations</li>
+            <li>Loss of the organization's §501(c)(3) tax-exempt status in cases of repeated or egregious violations</li>
+          </ul>
+        </div>
+        <label className="flex items-start gap-3 cursor-pointer">
+          <input type="checkbox" checked={liabilityAck} onChange={e => setLiabilityAck(e.target.checked)} className="mt-0.5" />
+          <span className="text-sm text-gray-700">
+            I have read and understood the legal liability disclosures above. I certify that I am authorized
+            to bind the contributing organization to this acknowledgment and that I have consulted with
+            qualified legal counsel regarding the equitable distribution requirements and potential liability
+            exposure. I accept personal responsibility for ensuring compliance with §530A and related
+            Treasury guidance for this contribution.
+          </span>
+        </label>
+      </div>
+
       <div className="flex gap-3 justify-between">
         <button onClick={onBack} className="px-4 py-2 text-sm font-medium text-gray-600 border border-gray-300 rounded hover:bg-gray-50">← Back</button>
         <button
-          onClick={() => onNext({ driftAuthorized, driftBand: [lowBand, highBand], fallback })}
+          onClick={() => onNext({ driftAuthorized, driftBand: [lowBand, highBand], fallback, equitableAck, liabilityAck })}
           disabled={!canContinue}
           className="px-6 py-2.5 text-sm font-semibold text-white rounded disabled:opacity-40 disabled:cursor-not-allowed"
           style={{ backgroundColor: '#1a4480' }}

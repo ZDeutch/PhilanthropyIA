@@ -90,25 +90,45 @@ export function computeUnionBeneficiaries(selectedIds, birthYearFilter) {
   const selectedSet = new Set(selectedIds);
   const coveredZipIds = new Set();
   const unitCodes = new Set();
+  const COHORT_YEARS = 19; // 2008–2026
+
+  const applyBirthYear = (n) =>
+    birthYearFilter && birthYearFilter.length > 0
+      ? Math.round(n * (birthYearFilter.length / COHORT_YEARS))
+      : n;
 
   const selectedStates = STATES.filter(s => selectedSet.has(s.id));
   if (selectedStates.length > 0 || selectedSet.has('all')) {
     let total = 0;
     selectedStates.forEach(s => { total += s.beneficiaries; unitCodes.add(s.code); });
     if (selectedSet.has('all')) STATES.forEach(s => unitCodes.add(s.code));
-    return { total, statutory: true, unitCodes: [...unitCodes] };
+    return { total: applyBirthYear(total), statutory: true, unitCodes: [...unitCodes] };
   }
+
+  // For counties/districts that have no ZIP-level breakdown in the seed data,
+  // accumulate their stored beneficiary count directly.
+  let directTotal = 0;
 
   const selectedCounties = COUNTIES.filter(c => selectedSet.has(c.id));
   selectedCounties.forEach(county => {
     unitCodes.add(county.code);
-    ZIPS.filter(z => z.county === county.id).forEach(z => coveredZipIds.add(z.id));
+    const countyZips = ZIPS.filter(z => z.county === county.id);
+    if (countyZips.length > 0) {
+      countyZips.forEach(z => coveredZipIds.add(z.id));
+    } else {
+      directTotal += county.beneficiaries;
+    }
   });
 
   const selectedDistricts = DISTRICTS.filter(d => selectedSet.has(d.id));
   selectedDistricts.forEach(district => {
     unitCodes.add(district.code);
-    ZIPS.filter(z => z.district === district.id).forEach(z => coveredZipIds.add(z.id));
+    const districtZips = ZIPS.filter(z => z.district === district.id);
+    if (districtZips.length > 0) {
+      districtZips.forEach(z => coveredZipIds.add(z.id));
+    } else {
+      directTotal += district.beneficiaries;
+    }
   });
 
   ZIPS.filter(z => selectedSet.has(z.id)).forEach(z => {
@@ -118,17 +138,13 @@ export function computeUnionBeneficiaries(selectedIds, birthYearFilter) {
     if (!parentCountySelected && !parentDistrictSelected) unitCodes.add(z.code);
   });
 
-  let total = 0;
+  let total = directTotal;
   coveredZipIds.forEach(zipId => {
     const zip = ZIPS.find(z => z.id === zipId);
     if (zip) total += zip.beneficiaries;
   });
 
-  if (birthYearFilter && birthYearFilter.length > 0) {
-    total = Math.round(total * (birthYearFilter.length / 19));
-  }
-
-  return { total, statutory: false, unitCodes: [...unitCodes] };
+  return { total: applyBirthYear(total), statutory: false, unitCodes: [...unitCodes] };
 }
 
 export function suggestAdditions(selectedIds, currentTotal) {
